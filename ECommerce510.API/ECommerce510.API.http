@@ -1,0 +1,9 @@
+@ECommerce510.API_HostAddress = https://localhost:7139
+
+
+
+###
+
+GET {{ECommerce510.API_HostAddress}}/api/categories
+
+###
