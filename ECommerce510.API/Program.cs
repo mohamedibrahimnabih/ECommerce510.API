@@ -1,6 +1,8 @@
+using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using System.Reflection;
 
 namespace ECommerce510.API
 {
@@ -8,7 +10,18 @@ namespace ECommerce510.API
     {
         public static void Main(string[] args)
         {
+            var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(name: MyAllowSpecificOrigins,
+                                  policy =>
+                                  {
+                                      policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                                  });
+            });
 
             // Add services to the container.
 
@@ -32,6 +45,11 @@ namespace ECommerce510.API
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
 
+            var config = TypeAdapterConfig.GlobalSettings;
+            config.Scan(Assembly.GetExecutingAssembly());
+
+            builder.Services.AddSingleton<IMapper>(new Mapper(config));
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -42,6 +60,8 @@ namespace ECommerce510.API
             }
 
             app.UseHttpsRedirection();
+
+            app.UseCors(MyAllowSpecificOrigins);
 
             app.UseAuthorization();
 

@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ECommerce510.API.Repositories
 {
@@ -13,21 +15,40 @@ namespace ECommerce510.API.Repositories
             _dbSet = _context.Set<T>();
         }
 
-        public void Create(T entity)
+        public async Task<T> CreateAsync(T entity, CancellationToken cancellationToken = default)
         {
-            _dbSet.Add(entity);
+            await _dbSet.AddAsync(entity, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return entity;
         }
-        public void Edit(T entity)
+        public async Task<T> EditAsync(T entity, CancellationToken cancellationToken = default)
         {
             _dbSet.Update(entity);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return entity;
         }
-        public void Delete(T entity)
+        public async Task<T> DeleteAsync(T entity, CancellationToken cancellationToken = default)
         {
             _dbSet.Remove(entity);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return entity;
         }
-        public void Commit()
+
+        public async Task<bool> CommitAsync(CancellationToken cancellationToken = default)
         {
-            _context.SaveChanges();
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                return true;
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                return false;
+            }
         }
 
         public IQueryable<T> Get(Expression<Func<T, bool>>? filter = null, Expression<Func<T, object>>[]? includes = null, bool tracked = true)

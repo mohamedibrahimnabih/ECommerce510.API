@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace ECommerce510.API.Controllers
 {
@@ -18,7 +19,31 @@ namespace ECommerce510.API.Controllers
         {
             var categories = _categoryRepository.Get();
 
-            return Ok(categories.ToList());
+            //List<CategoryResponse> categoryResponses = [];
+            //foreach (var item in categories)
+            //{
+            //    CategoryResponse categoryResponse = new()
+            //    {
+            //        Id = item.Id,
+            //        Name = item.Name,
+            //        Description = item.Description,
+            //        Status = item.Status
+            //    };
+
+            //    categoryResponses.Add(categoryResponse);
+            //}
+
+            //List<CategoryResponse> categoryResponses = [];
+
+            //categoryResponses.AddRange(categories.Select(e => new CategoryResponse()
+            //{
+            //    Id = e.Id,
+            //    Name = e.Name,
+            //    Description = e.Description,
+            //    Status = e.Status
+            //}));
+
+            return Ok(categories.Adapt<IEnumerable<CategoryResponse>>());
         }
 
         [HttpGet("{id}")]
@@ -27,32 +52,43 @@ namespace ECommerce510.API.Controllers
             var category = _categoryRepository.GetOne(e => e.Id == id);
 
             if (category is not null)
-                return Ok(category);
+            {
+                //CategoryResponse categoryResponse = new()
+                //{
+                //    Id = category.Id,
+                //    Name = category.Name,
+                //    Description = category.Description,
+                //    Status = category.Status
+                //};
+
+                return Ok(category.Adapt<CategoryResponse>());
+            }
 
             return NotFound();
         }
 
         [HttpPost("")]
-        public IActionResult Create([FromBody] Category category)
+        public async Task<IActionResult> Create([FromBody] CategoryRequest categoryRequest, CancellationToken cancellationToken)
         {
-            _categoryRepository.Create(category);
-            _categoryRepository.Commit();
+            var category = categoryRequest.Adapt<Category>();
+
+            var categoryCreated = await _categoryRepository.CreateAsync(category, cancellationToken);
 
             //return Created($"{Request.Scheme}://{Request.Host}/api/Categories/{category.Id}", category);
-            return CreatedAtAction(nameof(GetOne), new { id = category.Id }, category);
+            return CreatedAtAction(nameof(GetOne), new { id = categoryCreated.Id }, category.Adapt<CategoryResponse>());
         }
 
 
         [HttpPatch("{id}")]
-        public IActionResult Update([FromRoute] int id, [FromBody] Category category)
+        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] CategoryRequest categoryRequest, CancellationToken cancellationToken)
         {
             var categoryInDb = _categoryRepository.GetOne(e => e.Id == id);
             if (categoryInDb is not null)
             {
-                categoryInDb.Name = category.Name;
-                categoryInDb.Description = category.Description;
+                categoryInDb.Name = categoryRequest.Name;
+                categoryInDb.Description = categoryRequest.Description;
 
-                _categoryRepository.Commit();
+                await _categoryRepository.CommitAsync(cancellationToken);
 
                 return NoContent();
             }
@@ -61,7 +97,7 @@ namespace ECommerce510.API.Controllers
         }
 
         [HttpPatch("UpdateToggle/{id}")]
-        public IActionResult UpdateToggle([FromRoute] int id)
+        public async Task<IActionResult> UpdateToggle([FromRoute] int id, CancellationToken cancellationToken)
         {
             var categoryInDb = _categoryRepository.GetOne(e => e.Id == id);
 
@@ -69,7 +105,7 @@ namespace ECommerce510.API.Controllers
             {
                 categoryInDb.Status = !categoryInDb.Status;
 
-                _categoryRepository.Commit();
+                await _categoryRepository.CommitAsync(cancellationToken);
 
                 return NoContent();
             }
@@ -78,15 +114,13 @@ namespace ECommerce510.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete([FromRoute] int id)
+        public async Task<IActionResult> Delete([FromRoute] int id, CancellationToken cancellationToken)
         {
             var categoryInDb = _categoryRepository.GetOne(e => e.Id == id);
 
             if (categoryInDb is not null)
             {
-                _categoryRepository.Delete(categoryInDb);
-
-                _categoryRepository.Commit();
+                await _categoryRepository.DeleteAsync(categoryInDb, cancellationToken);
 
                 return NoContent();
             }
