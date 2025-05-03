@@ -4,7 +4,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Threading.Tasks;
+using System.Security.Claims;
+using System.Text;
 
 namespace ECommerce510.API.Controllers
 {
@@ -26,7 +29,7 @@ namespace ECommerce510.API.Controllers
         [HttpPost("Register")]
         public async Task<IActionResult> Register([FromBody] RegisterDTO registerDTO)
         {
-            if (_roleManager.Roles.IsNullOrEmpty())
+            if (_roleManager.Roles is not null)
             {
                 await _roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
                 await _roleManager.CreateAsync(new IdentityRole("Admin"));
@@ -63,9 +66,37 @@ namespace ECommerce510.API.Controllers
                 if (result)
                 {
                     // Login
-                    await _signInManager.SignInAsync(appUser, loginDTO.RememberMe);
+                    //await _signInManager.SignInAsync(appUser, loginDTO.RememberMe);
 
-                    return NoContent();
+                    var userRoles = await _userManager.GetRolesAsync(appUser);
+
+                    List<Claim> claims =
+                    [
+                        new Claim(ClaimTypes.Name, appUser.UserName ?? ""),
+                        new Claim(ClaimTypes.NameIdentifier, appUser.Id)
+                    ];
+
+                    foreach (var item in userRoles)
+                    {
+                        claims.Add(new(ClaimTypes.Role, item));
+                    }
+
+                    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("EraaSoftCourse510&&EraaSoftCourse510"));
+                    SigningCredentials JWTCredentials = new(key, SecurityAlgorithms.HmacSha256);
+
+                    JwtSecurityToken token = new(
+                        issuer: "https://localhost:7139",
+                        audience: "https://localhost:4200",
+                        claims: claims,
+                        expires: DateTime.Now.AddHours(1),
+                        signingCredentials: JWTCredentials
+                        );
+
+                    return Ok(
+                        new
+                        {
+                            token = new JwtSecurityTokenHandler().WriteToken(token)
+                        });
                 }
                 else
                 {
