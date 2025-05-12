@@ -1,3 +1,4 @@
+using ECommerce510.API.Utility;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -22,12 +23,14 @@ namespace ECommerce510.API
                 options.AddPolicy(name: MyAllowSpecificOrigins,
                                   policy =>
                                   {
-                                      policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                                      policy.WithOrigins("http://127.0.0.1:5500", "http://localhost:5500")
+                                      .AllowAnyMethod().AllowAnyHeader().AllowCredentials();
                                   });
             });
 
             // Add services to the container.
 
+            builder.Services.AddSignalR();
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
@@ -95,6 +98,7 @@ namespace ECommerce510.API
 
 
             app.MapControllers();
+            app.MapHub<ChatHub>("/chatHub");
 
             app.Run();
         }
